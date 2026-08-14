@@ -46,7 +46,7 @@ export default async function ProjectsPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              projects.map((project) => (
+              projects.map((project: any) => (
                 <TableRow key={project.id}>
                   <TableCell className="font-medium text-slate-900">{project.name}</TableCell>
                   <TableCell className="text-slate-600 max-w-xs truncate">

@@ -35,7 +35,7 @@ export default async function ProjectDetailsPage({ params }: PageProps) {
     }
 
     const totalTasks = project.tasks.length
-    const completedTasks = project.tasks.filter((task) => task.status === 'DONE').length
+    const completedTasks = project.tasks.filter((task: any) => task.status === 'DONE').length
     const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
 
     const users = await prisma.user.findMany({
@@ -83,7 +83,7 @@ export default async function ProjectDetailsPage({ params }: PageProps) {
                 No tasks in this project yet.
                 </div>
             ) : (
-                project.tasks.map((task) => (
+                project.tasks.map((task: any) => (
                 <div key={task.id} className="px-6 py-4 flex items-center justify-between hover:bg-slate-50">
                     <div>
                     <h3 className="text-sm font-medium text-slate-900">{task.title}</h3>

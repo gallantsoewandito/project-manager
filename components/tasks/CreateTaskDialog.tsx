@@ -20,7 +20,7 @@ import { Plus } from 'lucide-react'
 interface CreateTaskDialogProps {
     projects: { id: string; name: string }[]
     users: { id: string; name: string | null; email: string | null }[]
-    defaultProjectId: string
+    defaultProjectId?: string
 }
 
 export function CreateTaskDialog({ projects, users, defaultProjectId }: CreateTaskDialogProps) {

@@ -98,7 +98,7 @@ export default async function DashboardPage() {
                 </div>
                 ) : (
                 <div className="space-y-4">
-                    {recentProjects.map((project) => (
+                    {recentProjects.map((project: any) => (
                     <div key={project.id} className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition-colors">
                         <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-md bg-blue-100 flex items-center justify-center">

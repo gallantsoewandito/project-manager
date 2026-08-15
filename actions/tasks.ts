@@ -138,6 +138,7 @@ export async function updateTaskDetails(taskId: string, formData: FormData) {
   const description = formData.get('description') as string
   const submissionLink = formData.get('submissionLink') as string
   const submissionNotes = formData.get('submissionNotes') as string
+  const dueDateStr = formData.get('dueDate') as string | null
 
   try {
     await prisma.task.update({
@@ -147,6 +148,7 @@ export async function updateTaskDetails(taskId: string, formData: FormData) {
         description: description?.trim() || null,
         submissionLink: submissionLink?.trim() || null,
         submissionNotes: submissionNotes?.trim() || null,
+        dueDate: dueDateStr ? new Date(dueDateStr) : null,
       },
     })
 

@@ -86,10 +86,19 @@ export function TaskDetailsPanel({ task, userRole, userId, onClose }: TaskDetail
 
                 <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-700">Deadline</label>
-                    <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                    <Calendar className="h-4 w-4 text-slate-500" />
-                    {formatDate(task.dueDate)}
-                    </div>
+                    {isManager ? (
+                        <input 
+                            type="date"
+                            name="dueDate" 
+                            defaultValue={task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : ''}
+                            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                        />
+                    ) : (
+                        <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                        <Calendar className="h-4 w-4 text-slate-500" />
+                        {formatDate(task.dueDate)}
+                        </div>
+                    )}
                 </div>
 
                 <div className="space-y-2">
@@ -106,7 +115,7 @@ export function TaskDetailsPanel({ task, userRole, userId, onClose }: TaskDetail
 
                 {isManager && (
                     <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700">Submission Link (External)</label>
+                    <label className="text-sm font-medium text-slate-700">Submission Link (Optional)</label>
                     <input 
                         name="submissionLink" 
                         defaultValue={task.submissionLink || ''} 

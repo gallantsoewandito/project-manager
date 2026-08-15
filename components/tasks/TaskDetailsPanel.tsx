@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { updateTaskDetails } from '@/actions/tasks'
-import { X, ExternalLink, Send } from 'lucide-react'
+import { X, ExternalLink, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 
@@ -11,6 +11,7 @@ interface Task {
   title: string
   description: string | null
   status: string
+  dueDate: Date | null
   submissionLink: string | null
   submissionNotes: string | null
   assignee: { id: string; name: string | null; email: string | null } | null
@@ -48,7 +49,17 @@ export function TaskDetailsPanel({ task, userRole, userId, onClose }: TaskDetail
         setIsSaving(false)
     }
 
-    return (
+    const formatDate = (date: Date | null) => {
+        if (!date) return 'No deadline set'
+        return new Date(date).toLocaleDateString('en-US',{
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        })
+    }
+
+     return (
         <div className={`fixed inset-0 z-50 transition-opacity ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <div className="absolute inset-0 bg-black/50" onClick={onClose} />
         
@@ -74,19 +85,28 @@ export function TaskDetailsPanel({ task, userRole, userId, onClose }: TaskDetail
                 </div>
 
                 <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">Deadline</label>
+                    <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                    <Calendar className="h-4 w-4 text-slate-500" />
+                    {formatDate(task.dueDate)}
+                    </div>
+                </div>
+
+                <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-700">Description</label>
-                    <Textarea 
+                    <textarea 
                     name="description" 
                     defaultValue={task.description || ''} 
                     readOnly={!isManager}
                     placeholder="Add a description..."
-                    className="min-h-[100px] disabled:bg-slate-50"
+                    rows={4}
+                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 disabled:bg-slate-50 resize-none"
                     />
                 </div>
 
                 {isManager && (
                     <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700">Submission Link</label>
+                    <label className="text-sm font-medium text-slate-700">Submission Link (External)</label>
                     <input 
                         name="submissionLink" 
                         defaultValue={task.submissionLink || ''} 
@@ -99,7 +119,7 @@ export function TaskDetailsPanel({ task, userRole, userId, onClose }: TaskDetail
 
                 {isAssignee && task.submissionLink && (
                     <div className="rounded-md bg-blue-50 p-4 border border-blue-100">
-                    <p className="text-sm font-medium text-blue-900 mb-2">Required Submission</p>
+                    <p className="text-sm font-medium text-blue-900 mb-2">Submission Link</p>
                     <a 
                         href={task.submissionLink} 
                         target="_blank" 
@@ -113,13 +133,23 @@ export function TaskDetailsPanel({ task, userRole, userId, onClose }: TaskDetail
 
                 {isAssignee && (
                     <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700">Submission Notes</label>
-                    <Textarea 
+                    <label className="text-sm font-medium text-slate-700">Comments</label>
+                    <textarea 
                         name="submissionNotes" 
                         defaultValue={task.submissionNotes || ''} 
-                        placeholder="Add notes about your submission..."
-                        className="min-h-[100px]"
+                        placeholder="Add notes about your work completion or any relevant information..."
+                        rows={5}
+                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 resize-none"
                     />
+                    </div>
+                )}
+
+                {!isAssignee && !isManager && task.submissionNotes && (
+                    <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">Submission Notes</label>
+                    <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+                        {task.submissionNotes}
+                    </div>
                     </div>
                 )}
                 </form>
@@ -135,9 +165,18 @@ export function TaskDetailsPanel({ task, userRole, userId, onClose }: TaskDetail
                 >
                     {isSaving ? 'Saving...' : 'Save Changes'}
                 </Button>
+                ) : isAssignee ? (
+                <Button 
+                    type="submit" 
+                    form="task-details-form" 
+                    disabled={isSaving}
+                    className="w-full"
+                >
+                    {isSaving ? 'Saving...' : 'Save Completion Notes'}
+                </Button>
                 ) : (
                 <p className="text-center text-sm text-slate-500">
-                    Use the Kanban board to update your task status.
+                    Contact the assignee for updates on this task.
                 </p>
                 )}
             </div>

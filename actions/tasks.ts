@@ -143,10 +143,10 @@ export async function updateTaskDetails(taskId: string, formData: FormData) {
     await prisma.task.update({
       where: { id: taskId },
       data: {
-        title: title.trim() || undefined,
-        description: description.trim() || null,
-        submissionLink: submissionLink.trim() || null,
-        submissionNotes: submissionNotes.trim() || null,
+        title: title?.trim() || undefined,
+        description: description?.trim() || null,
+        submissionLink: submissionLink?.trim() || null,
+        submissionNotes: submissionNotes?.trim() || null,
       },
     })
 

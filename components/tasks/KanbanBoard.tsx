@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { Calendar } from 'lucide-react'
 import { TaskDetailsPanel } from './TaskDetailsPanel'
 import { clearCompletedTasks, updateTaskStatus, clearNudge } from '@/actions/tasks'
 import { Badge } from '@/components/ui/badge'
@@ -188,6 +189,18 @@ export function KanbanBoard({ initialTasks, userRole, userId }: KanbanBoardProps
                                 <p className="text-xs text-slate-500 line-clamp-2">
                                 {task.description}
                                 </p>
+                            )}
+                            {task.dueDate && (
+                                <div className={`flex items-center gap-1.5 text-xs ${
+                                new Date(task.dueDate) < new Date() && task.status !== 'DONE' 
+                                    ? 'text-red-600 font-medium' 
+                                    : 'text-slate-500'
+                                }`}>
+                                <Calendar className="h-3 w-3" />
+                                <span>
+                                    {format(new Date(task.dueDate), 'MMM d, yyyy')}
+                                </span>
+                                </div>
                             )}
                             <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                                 <Badge variant="outline" className="text-[10px] h-5">

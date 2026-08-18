@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { CreateTaskDialog } from '@/components/tasks/CreateTaskDialog'
+import { ProjectTaskList } from '@/components/projects/ProjectTaskList'
 
 interface PageProps {
   params: Promise<{
@@ -77,42 +78,13 @@ export default async function ProjectDetailsPage({ params }: PageProps) {
             <div className="px-6 py-4 border-b border-slate-200">
             <h2 className="text-lg font-semibold text-slate-900">Tasks</h2>
             </div>
-            <div className="divide-y divide-slate-100">
-            {project.tasks.length === 0 ? (
-                <div className="p-8 text-center text-slate-500">
-                No tasks in this project yet.
-                </div>
-            ) : (
-                project.tasks.map((task: any) => (
-                <div key={task.id} className="px-6 py-4 flex items-center justify-between hover:bg-slate-50">
-                    <div>
-                    <h3 className="text-sm font-medium text-slate-900">{task.title}</h3>
-                    <p className="text-xs text-slate-500 mt-1">
-                        Assigned to: {task.assignee ? (task.assignee.name || task.assignee.email) : 'Unassigned'}
-                    </p>
-                    {task.submissionLink && (
-                        <a 
-                        href={task.submissionLink} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-xs text-blue-600 hover:text-blue-800 mt-1 inline-block"
-                        >
-                        View Submission
-                        </a>
-                    )}
-                    </div>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    task.status === 'DONE' ? 'bg-green-100 text-green-800' :
-                    task.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-800' :
-                    task.status === 'REVIEW' ? 'bg-amber-100 text-amber-800' :
-                    'bg-slate-100 text-slate-800'
-                    }`}>
-                    {task.status.replace('_', ' ')}
-                    </span>
-                </div>
-                ))
-            )}
-            </div>
+            
+            <ProjectTaskList 
+            tasks={project.tasks} 
+            userRole={userRole} 
+            userId={userId} 
+            />
+            
         </div>
         </div>
     )

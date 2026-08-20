@@ -38,7 +38,7 @@ export function CreateUserDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger>
+      <DialogTrigger className="flex items-center gap-2 rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 transition-colors">
         <Plus className="w-4 h-4" />
         Add User
       </DialogTrigger>
@@ -70,18 +70,6 @@ export function CreateUserDialog() {
               type="email" 
               placeholder="john@example.com"
               required
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input 
-              id="password" 
-              name="password" 
-              type="password" 
-              placeholder="Minimum 6 characters"
-              required
-              minLength={6}
             />
           </div>
           

@@ -1,10 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { updateTaskDetails } from '@/actions/tasks'
 import { X, ExternalLink, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
+import { updateTaskDetails, updateTaskStatus } from '@/actions/tasks'
 
 interface Task {
   id: string
@@ -41,12 +40,20 @@ export function TaskDetailsPanel({ task, userRole, userId, onClose }: TaskDetail
     const isManager = userRole !== 'USER'
     const isAssignee = task.assignee?.id === userId
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
+    const handleSave = async (markAsDone = false) => {
         setIsSaving(true)
-        const formData = new FormData(e.currentTarget)
+
+        const form = document.getElementById('task-details-form') as HTMLFormElement
+        const formData = new FormData(form)
+
         await updateTaskDetails(task.id, formData)
+
+        if (markAsDone && task.status !== 'DONE') {
+            await updateTaskStatus(task.id, 'DONE')
+        }
+            
         setIsSaving(false)
+        onClose()
     }
 
     const formatDate = (date: Date | null) => {
@@ -73,7 +80,7 @@ export function TaskDetailsPanel({ task, userRole, userId, onClose }: TaskDetail
             </div>
 
             <div className="flex-1 overflow-y-auto px-6 py-4">
-                <form id="task-details-form" onSubmit={handleSubmit} className="space-y-6">
+                <form id="task-details-form" className="space-y-6">
                 <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-700">Title</label>
                     <input 
@@ -119,10 +126,9 @@ export function TaskDetailsPanel({ task, userRole, userId, onClose }: TaskDetail
                     <input 
                         name="submissionLink" 
                         defaultValue={task.submissionLink || ''} 
-                        placeholder="https://forms.gle/... or https://figma.com/..."
+                        placeholder="https://forms.gle/..."
                         className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
                     />
-                    <p className="text-xs text-slate-500">Provide a link for the user to submit their work.</p>
                     </div>
                 )}
 
@@ -164,29 +170,56 @@ export function TaskDetailsPanel({ task, userRole, userId, onClose }: TaskDetail
                 </form>
             </div>
 
-            <div className="border-t border-slate-200 px-6 py-4">
+            <div className="border-t border-slate-200 px-6 py-4 flex gap-3">
                 {isManager ? (
-                <Button 
-                    type="submit" 
-                    form="task-details-form" 
+                <>
+                    <Button 
+                    type="button" 
+                    variant="outline"
+                    onClick={() => handleSave(false)}
                     disabled={isSaving}
-                    className="w-full"
-                >
-                    {isSaving ? 'Saving...' : 'Save Changes'}
-                </Button>
+                    className="flex-1"
+                    >
+                    {isSaving ? 'Saving...' : 'Save and Back'}
+                    </Button>
+                    <Button 
+                    type="button" 
+                    onClick={() => handleSave(true)}
+                    disabled={isSaving || task.status === 'DONE'}
+                    className="flex-1"
+                    >
+                    {isSaving ? 'Saving...' : 'Save & Mark as Done'}
+                    </Button>
+                </>
                 ) : isAssignee ? (
-                <Button 
-                    type="submit" 
-                    form="task-details-form" 
+                <>
+                    <Button 
+                    type="button" 
+                    variant="outline"
+                    onClick={() => handleSave(false)}
                     disabled={isSaving}
+                    className="flex-1"
+                    >
+                    {isSaving ? 'Saving...' : 'Save and Back'}
+                    </Button>
+                    <Button 
+                    type="button" 
+                    onClick={() => handleSave(true)}
+                    disabled={isSaving || task.status === 'DONE'}
+                    className="flex-1"
+                    >
+                    {isSaving ? 'Saving...' : 'Save & Mark as Done'}
+                    </Button>
+                </>
+                ) : (
+                <Button 
+                    type="button" 
+                    variant="outline"
+                    onClick={onClose}
                     className="w-full"
                 >
-                    {isSaving ? 'Saving...' : 'Save Completion Notes'}
+                    Close
                 </Button>
-                ) : (
-                <p className="text-center text-sm text-slate-500">
-                    Contact the assignee for updates on this task.
-                </p>
                 )}
             </div>
             </div>

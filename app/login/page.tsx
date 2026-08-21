@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -81,9 +82,18 @@ export default function LoginPage() {
                 disabled={isLoading}
                 className="w-full py-2 px-4 bg-slate-900 text-white font-medium rounded-md hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 disabled:opacity-50 transition-colors"
             >
-                {isLoading ? 'Signing in...' : 'Sign In'}
+                {isLoading ? 'Logging in...' : 'Log In'}
             </button>
             </form>
+
+            <div className="py-2">
+                <p className="text-sm text-slate-600">
+                    New user?{' '}
+                    <Link href="/signup" className="text-blue-600 hover:text-blue-800 font-medium">
+                        Create Account
+                    </Link>
+                </p>
+            </div>
         </div>
         </div>
     );

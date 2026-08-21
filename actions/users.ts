@@ -149,3 +149,51 @@ export async function setPassword(token: string, password: string) {
 
   return { success: true }
 }
+
+export async function requestInvite(formData: FormData) {
+  const name = formData.get('name') as string
+  const email = formData.get('email') as string
+
+  if (!name || !email) {
+    return { error: 'Name and email are required.' }
+  }
+
+  try {
+    const existingUser = await prisma.user.findUnique({ where: { email } })
+    if (existingUser) {
+      return { error: 'An account with this email already exists. Please login instead.' }
+    }
+
+    const token = randomBytes(32).toString('hex')
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+
+    await prisma.user.create({
+      data: {
+        name,
+        email,
+        role: 'USER', // Default role for self-signup
+        inviteToken: token,
+        inviteTokenExpires: expires,
+      },
+    })
+
+    const inviteLink = `${process.env.NEXTAUTH_URL}/invite/${token}`
+
+    await resend.emails.send({
+      from: 'onboarding@resend.dev',
+      to: [email],
+      subject: 'Welcome to ProjectHub - Set Your Password',
+      html: `
+        <h2>Welcome to ProjectHub!</h2>
+        <p>Thank you for signing up. Please click the link below to set your password and activate your account.</p>
+        <a href="${inviteLink}" style="background-color: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Set Password</a>
+        <p>This link will expire in 24 hours.</p>
+      `,
+    })
+
+    return { success: true }
+  } catch (error) {
+    console.error('Failed to request invite:', error)
+    return { error: 'An unexpected error occurred.' }
+  }
+}

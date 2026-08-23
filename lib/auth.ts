@@ -35,11 +35,18 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Invalid credentials");
         }
 
+        // 1. Check if the admin has approved the user
+        if (!user.isApproved) {
+          throw new Error("Your account is pending admin approval.");
+        }
+
         return {
           id: user.id,
           email: user.email,
           name: user.name,
           role: user.role,
+          // 2. Pass the password change flag to the token
+          requiresPasswordChange: user.requiresPasswordChange,
         };
       },
     }),
@@ -49,12 +56,16 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as any).id = token.sub;
         (session.user as any).role = token.role;
+        // 3. Pass the password change flag to the session
+        (session.user as any).requiresPasswordChange = token.requiresPasswordChange;
       }
       return session;
     },
     async jwt({ token, user }) {
       if (user) {
         token.role = (user as any).role;
+        // 4. Store the password change flag in the JWT
+        token.requiresPasswordChange = (user as any).requiresPasswordChange;
       }
       return token;
     },

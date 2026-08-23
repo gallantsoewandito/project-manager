@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { createUser } from '@/actions/users'
+import { createUserByAdmin } from '@/actions/users'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -24,7 +24,7 @@ export function CreateUserDialog() {
     setIsPending(true)
     setError(null)
     
-    const result = await createUser(formData)
+    const result = await createUserByAdmin(formData)
     
     setIsPending(false)
     
@@ -46,7 +46,7 @@ export function CreateUserDialog() {
         <DialogHeader>
           <DialogTitle>Create New User</DialogTitle>
           <DialogDescription>
-            Add a new user to the system. They will be able to log in with the credentials you provide.
+            Create a new user with a default password. The user will be required to change their password on first login.
           </DialogDescription>
         </DialogHeader>
         
@@ -73,18 +73,13 @@ export function CreateUserDialog() {
             />
           </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="role">Role</Label>
-            <select 
-              id="role" 
-              name="role" 
-              className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
-              required
-            >
-              <option value="USER">User</option>
-              <option value="MANAGER">Manager</option>
-              <option value="ADMIN">Admin</option>
-            </select>
+          <div className="p-3 bg-blue-50 rounded-md border border-blue-200">
+            <p className="text-sm text-blue-900">
+              <strong>Default Password:</strong> password123
+            </p>
+            <p className="text-xs text-blue-700 mt-1">
+              User will be required to change this on first login.
+            </p>
           </div>
           
           {error && (

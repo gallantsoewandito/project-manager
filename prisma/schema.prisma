@@ -20,15 +20,14 @@ model User {
   image         String?
   password      String?
   role          Role      @default(USER)
-  inviteToken   String?   @unique
-  inviteTokenExpires  DateTime?
+  isApproved    Boolean   @default(false)
+  requiresPasswordChange    Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
   accounts      Account[]
   sessions      Session[]
   projects      Project[] @relation("ProjectCreator")
-  
   assignedTasks Task[]    @relation("TaskAssignee")
 }
 

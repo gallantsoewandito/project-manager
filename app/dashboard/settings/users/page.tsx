@@ -23,6 +23,7 @@ export default async function UserManagementPage() {
       email: true,
       role: true,
       createdAt: true,
+      isApproved: true,
     },
   })
 

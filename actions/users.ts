@@ -1,7 +1,5 @@
 'use server'
 
-import { Resend } from 'resend'
-import { randomBytes } from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { getServerSession } from 'next-auth'
@@ -17,24 +15,57 @@ async function getAdminUser() {
   return { id: (session as any).user.id }
 }
 
-const createUserSchema = z.object({
+const signUpSchema = z.object({
   name: z.string().min(2, 'Name is required'),
   email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  role: z.enum(['USER', 'MANAGER', 'ADMIN']),
+  password: z.string()
+    .min(6, 'Password must be at least 6 characters')
+    .regex(/^(?=.*[A-Z])(?=.*\d)/, 'Password must contain at least 1 uppercase letter and 1 digit'),
 })
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+export async function requestSignup(formData: FormData) {
+    const name = formData.get('name') as string
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
 
-export async function createUser(formData: FormData) {
+    const validated = signUpSchema.safeParse({ name, email, password })
+    if (!validated.success) {
+        return { error: validated.error.message }
+    }
+
+    try {
+        const existingUser = await prisma.user.findUnique({ where: { email }})
+        if (existingUser) {
+            return { error: 'An account with this email already exists.' }
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10)
+
+        await prisma.user.create({
+            data: {
+                name,
+                email,
+                password: hashedPassword,
+                role: 'USER',
+                isApproved: true,
+                requiresPasswordChange: true,
+            },
+        })
+
+        return { success: true }
+    } catch (error) {
+        return { error: 'An unexpected error occured.'}
+    }
+}
+
+export async function createUserByAdmin(formData: FormData) {
     const admin = await getAdminUser()
     if (!admin) return { error: 'Unauthorized. Only Admins can create users.' }
 
     const name = formData.get('name') as string
     const email = formData.get('email') as string
-    const role = formData.get('role') as string
 
-    if (!(name && email && role)) {
+    if (!(name && email)) {
         return { error: 'All fields are required.' }
     }
 
@@ -44,31 +75,17 @@ export async function createUser(formData: FormData) {
         return { error: 'A user with this email already exists.' }
         }
 
-        const token = randomBytes(32).toString('hex')
-        const expires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+        const hashedPassword = await bcrypt.hash('password123', 10)
 
         await prisma.user.create({
             data: {
                 name,
                 email,
-                role: role as any,
-                inviteToken: token,
-                inviteTokenExpires: expires,
+                password: hashedPassword,
+                role: 'USER',
+                isApproved: false,
+                requiresPasswordChange: false,
             },
-        })
-
-        const inviteLink = `${process.env.NEXTAUTH_URL}/invite/${token}`
-
-        await resend.emails.send({
-            from: 'onboarding@resend.dev',
-            to: [email],
-            subject: 'You have been invited to ProjectHub',
-            html: `
-                <h2>Welcome to ProjectHub</h2>
-                <p>You have been invited to join the platform. Please click the link below to set your password and activate your account.</p>
-                <a href="${inviteLink}" style="background-color: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Set Password</a>
-                <p>This link will expire in 24 hours.</p>
-            `,
         })
 
         revalidatePath('/dashboard/settings/users')
@@ -79,25 +96,23 @@ export async function createUser(formData: FormData) {
     }
 }
 
-export async function updateUserRole(userId: string, newRole: string) {
+export async function approveUser(userId: string, newRole: string) {
     const admin = await getAdminUser()
-    if (!admin) return { error: 'Unauthorized. Only Admins can create users.' }
-
-    if (userId === admin.id) {
-        return { error: 'You cannot change your own role.' }
-    }
+    if (!admin) return { error: 'Unauthorized.' }
 
     try {
         await prisma.user.update({
             where: { id: userId },
-            data: { role: newRole as any },
+            data: { 
+                isApproved: true,
+                role: newRole as any,
+            },
         })
-
         revalidatePath('/dashboard/settings/users')
         return { success: true }
     } catch (error) {
-        console.error('Failed to update role:', error)
-        return { error: 'Failed to update role.' }
+        console.error('Failed to approve user:', error)
+        return { error: 'Failed to approve user.' }
     }
 }
 
@@ -119,81 +134,31 @@ export async function deleteUser(userId: string) {
   }
 }
 
-export async function setPassword(token: string, password: string) {
-  if (!token || !password) {
-    return { error: 'Invalid request.' }
+export async function updateUserPassword(userId: string, newPassword: string) {
+  const session = await getServerSession(authOptions)
+  if (!session || (session as any).user?.id !== userId) {
+    return { error: 'Unauthorized.' }
   }
 
-  const user = await prisma.user.findUnique({
-    where: { inviteToken: token },
-  })
-
-  if (!user) {
-    return { error: 'Invalid or expired invitation link.' }
-  }
-
-  if (user.inviteTokenExpires && user.inviteTokenExpires < new Date()) {
-    return { error: 'This invitation link has expired. Please contact your administrator.' }
-  }
-
-  const hashedPassword = await bcrypt.hash(password, 10)
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      password: hashedPassword,
-      inviteToken: null,
-      inviteTokenExpires: null,
-    },
-  })
-
-  return { success: true }
-}
-
-export async function requestInvite(formData: FormData) {
-  const name = formData.get('name') as string
-  const email = formData.get('email') as string
-
-  if (!name || !email) {
-    return { error: 'Name and email are required.' }
+  const validated = signUpSchema.safeParse({ password: newPassword, name: 'temp', email: 'temp@test.com' })
+  if (!validated.success) {
+    return { error: validated.error.message }
   }
 
   try {
-    const existingUser = await prisma.user.findUnique({ where: { email } })
-    if (existingUser) {
-      return { error: 'An account with this email already exists. Please login instead.' }
-    }
+    const hashedPassword = await bcrypt.hash(newPassword, 10)
 
-    const token = randomBytes(32).toString('hex')
-    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
-
-    await prisma.user.create({
-      data: {
-        name,
-        email,
-        role: 'USER', // Default role for self-signup
-        inviteToken: token,
-        inviteTokenExpires: expires,
-      },
-    })
-
-    const inviteLink = `${process.env.NEXTAUTH_URL}/invite/${token}`
-
-    await resend.emails.send({
-      from: 'onboarding@resend.dev',
-      to: [email],
-      subject: 'Welcome to ProjectHub - Set Your Password',
-      html: `
-        <h2>Welcome to ProjectHub!</h2>
-        <p>Thank you for signing up. Please click the link below to set your password and activate your account.</p>
-        <a href="${inviteLink}" style="background-color: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Set Password</a>
-        <p>This link will expire in 24 hours.</p>
-      `,
+    await prisma.user.update({
+        where: { id: userId },
+        data: {
+        password: hashedPassword,
+        requiresPasswordChange: false,
+        },
     })
 
     return { success: true }
   } catch (error) {
-    console.error('Failed to request invite:', error)
-    return { error: 'An unexpected error occurred.' }
+    console.error('Failed to update password:', error)
+    return { error: 'Failed to update password.' }
   }
 }

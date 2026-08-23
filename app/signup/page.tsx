@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { requestInvite } from '@/actions/users'
+import { requestSignup } from '@/actions/users'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -13,6 +13,8 @@ export default function SignupPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [isPending, setIsPending] = useState(false)
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
@@ -20,42 +22,25 @@ export default function SignupPage() {
     e.preventDefault()
     setError(null)
 
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.')
+      return
+    }
+
     const formData = new FormData()
     formData.append('name', name)
     formData.append('email', email)
+    formData.append('password', password)
 
     setIsPending(true)
-    const result = await requestInvite(formData)
+    const result = await requestSignup(formData)
     setIsPending(false)
 
     if (result?.error) {
       setError(result.error)
     } else {
-      setSuccess(true)
+      router.push('/signup/pending')
     }
-  }
-
-  if (success) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-md text-center">
-          <div className="mb-4">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-              <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900 mb-2">Check Your Email</h1>
-          <p className="text-slate-600 mb-6">
-            We've sent you an invitation link to <strong>{email}</strong>. Click the link to set your password and activate your account.
-          </p>
-          <Link href="/login" className="text-sm text-blue-600 hover:text-blue-800">
-            Return to login
-          </Link>
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -63,31 +48,40 @@ export default function SignupPage() {
       <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-md">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-slate-900">Create Account</h1>
-          <p className="text-slate-500 mt-2">Sign up to get started with ProjectHub</p>
+          <p className="text-slate-500 mt-2">Request access to ProjectHub</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Username</Label>
-            <Input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="John Doe"
-              required
-            />
+            <Label htmlFor="name">Full Name</Label>
+            <Input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} required />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="email">Email Address</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="john@example.com"
-              required
+            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input 
+              id="password" 
+              type="password" 
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)} 
+              placeholder="Min 8 chars, 1 uppercase, 1 digit"
+              required 
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <Input 
+              id="confirmPassword" 
+              type="password" 
+              value={confirmPassword} 
+              onChange={(e) => setConfirmPassword(e.target.value)} 
+              required 
             />
           </div>
 
@@ -98,7 +92,7 @@ export default function SignupPage() {
           )}
 
           <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? 'Sending Invitation...' : 'Request Invitation'}
+            {isPending ? 'Submitting...' : 'Request Approval'}
           </Button>
         </form>
 

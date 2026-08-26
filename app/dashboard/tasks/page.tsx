@@ -2,9 +2,8 @@ import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { getServerSession } from 'next-auth'
 import { CreateTaskDialog } from '@/components/tasks/CreateTaskDialog'
-import { KanbanBoard } from '@/components/tasks/KanbanBoard'
 import { DenseTaskTable } from '@/components/tasks/DenseTaskTable'
-import { TaskDetailsPanel } from '@/components/tasks/TaskDetailsPanel'
+import { MyTasksClient } from '@/components/tasks/MyTasksClient'
 
 export default async function TasksPage() {
     const session = await getServerSession(authOptions)
@@ -21,21 +20,22 @@ export default async function TasksPage() {
 
     let tasks = []
     if (userRole === 'USER') {
-        // Normal users only see tasks assigned to them
         tasks = await prisma.task.findMany({
             where: { assigneeId: userId },
-            orderBy: { createdAt: 'desc' },
+            orderBy: [
+                { status: 'asc' },
+                { dueDate: 'asc' }
+            ],
             include: {
-                project: { select: { name: true } },
+                project: { select: { id: true, name: true } },
                 assignee: { select: { id: true, name: true, email: true } },
             },
         })
     } else {
-        // Managers and Admins see all tasks
         tasks = await prisma.task.findMany({
             orderBy: { createdAt: 'desc' },
             include: {
-                project: { select: { name: true } },
+                project: { select: { id: true, name: true } },
                 assignee: { select: { id: true, name: true, email: true } },
             },
         })
@@ -43,25 +43,35 @@ export default async function TasksPage() {
 
     return (
         <div className="space-y-6">
-        <div className="flex items-center justify-between">
-            <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">Tasks</h1>
-            <p className="text-slate-500 mt-1">
-                {userRole === 'USER' ? 'Your assigned tasks.' : 'Manage and track all team tasks.'}
-            </p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+                        {userRole === 'USER' ? 'My Tasks' : 'All Tasks'}
+                    </h1>
+                    <p className="text-slate-500 mt-1">
+                        {userRole === 'USER' ? 'A focused view of tasks assigned specifically to you.' : 'Manage and track all team tasks.'}
+                    </p>
+                </div>
+                
+                {userRole !== 'USER' && (
+                    <CreateTaskDialog projects={projects} users={users} />
+                )}
             </div>
-            {/* Only Managers and Admins can create tasks */}
-            {userRole !== 'USER' && (
-            <CreateTaskDialog projects={projects} users={users} />
-            )}
-        </div>
 
-        {/* Render different views based on role */}
-        {userRole === 'USER' ? (
-            <KanbanBoard initialTasks={tasks} userRole={userRole} userId={userId} />
-        ) : (
-            <DenseTaskTable tasks={tasks} users={users} userRole={userRole} userId={userId} />
-        )}
+            {userRole === 'USER' ? (
+                <MyTasksClient 
+                    tasks={tasks as any} 
+                    userRole={userRole} 
+                    userId={userId} 
+                />
+            ) : (
+                <DenseTaskTable 
+                    tasks={tasks} 
+                    users={users} 
+                    userRole={userRole} 
+                    userId={userId} 
+                />
+            )}
         </div>
     )
 }

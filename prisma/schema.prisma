@@ -28,6 +28,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   projects      Project[] @relation("ProjectCreator")
+  projectMemberships  ProjectMember[]
   assignedTasks Task[]    @relation("TaskAssignee")
 }
 
@@ -76,7 +77,20 @@ model Project {
   
   creatorId   String?
   creator     User?    @relation("ProjectCreator", fields: [creatorId], references: [id])
+  members     ProjectMember[]
   tasks       Task[]
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   @default("MEMBER") // MEMBER or MANAGER
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, userId])
 }
 
 model Task {

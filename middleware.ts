@@ -1,15 +1,16 @@
-import { withAuth } from "next-auth/middleware"
 import { NextResponse } from "next/server"
+import { withAuth } from "next-auth/middleware"
 
 export default withAuth(
   function middleware(req) {
     const token = req.nextauth.token
-    const requiresPasswordChange = token?.requiresPasswordChange
-    const isChangePasswordPage = req.nextUrl.pathname === "/dashboard/settings/change-password"
-    const isLoginPage = req.nextUrl.pathname === "/login"
+    if (!token) return NextResponse.next()
 
+    const requiresPasswordChange = token.requiresPasswordChange as boolean
+    const isChangePasswordPage = req.nextUrl.pathname === "/dashboard/settings/change-password"
+    
     // If user needs password change and is not on the change password page
-    if (requiresPasswordChange && !isChangePasswordPage && !isLoginPage) {
+    if (requiresPasswordChange && !isChangePasswordPage) {
       return NextResponse.redirect(new URL("/dashboard/settings/change-password", req.url))
     }
 
@@ -22,7 +23,17 @@ export default withAuth(
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token,
+      authorized: ({ token, req }) => {
+        const path = req.nextUrl.pathname
+        
+        // 1. Always allow access to login and signup pages to prevent redirect loops
+        if (path === "/login" || path === "/signup") {
+          return true
+        }
+        
+        // 2. Require a valid token for all other matched routes (like /dashboard)
+        return !!token
+      },
     },
   }
 )

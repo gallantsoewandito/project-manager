@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { getServerSession } from 'next-auth'
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { CreateUserDialog } from '@/components/settings/CreateUserDialog'
 import { UserTable } from '@/components/settings/UserTable'
@@ -31,6 +32,9 @@ export default async function UserManagementPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
+          <Link href="/dashboard/settings" className="text-sm text-blue-600 hover:text-blue-800 mb-2 inline-block">
+            Back to Settings
+          </Link>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">User Management</h1>
           <p className="text-slate-500 mt-1">Add, manage, and assign roles to system users.</p>
         </div>

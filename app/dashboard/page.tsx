@@ -173,7 +173,6 @@ export default async function DashboardPage() {
             <CardContent>
                 {myActionItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-32 text-slate-400 text-sm">
-                    <p>All caught up!</p>
                     <p className="text-xs mt-1">No pending tasks assigned to you.</p>
                 </div>
                 ) : (

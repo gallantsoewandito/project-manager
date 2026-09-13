@@ -77,6 +77,11 @@ export default async function ProjectDetailsPage({ params }: PageProps) {
         notFound()
     }
 
+    const isSystemManager = userRole === 'ADMIN' || userRole === 'MANAGER'
+    const projectManager = project.members.find((m: any) => m.userId === userId)
+    const isProjectManager = projectManager?.role === 'MANAGER'
+    const canCreateTask = isSystemManager || isProjectManager
+
     const totalTasks = project.tasks.length
     const completedTasks = project.tasks.filter((task: any) => task.status === 'DONE').length
     const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
@@ -109,7 +114,7 @@ export default async function ProjectDetailsPage({ params }: PageProps) {
                     <h1 className="text-3xl font-bold tracking-tight text-slate-900">{project.name}</h1>
                     <p className="text-slate-500 mt-1">{project.description || 'No description provided.'}</p>
                 </div>
-                {userRole !== 'USER' && (
+                {canCreateTask && (
                     <CreateTaskDialog 
                         projects={[{ id: project.id, name: project.name }]} 
                         users={users} 

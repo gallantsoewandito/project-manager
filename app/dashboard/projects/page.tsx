@@ -11,11 +11,31 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import Link from 'next/link'
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export default async function ProjectsPage() {
-  const projects = await prisma.project.findMany({
-    orderBy: { createdAt: 'desc' },
-  });
+  const session = await getServerSession(authOptions)
+  const userRole = (session?.user as any)?.role || 'USER'
+  const userId = (session?.user as any)?.id
+
+  let projects
+  if (userRole === 'ADMIN' || userRole === 'MANAGER') {
+    projects = await prisma.project.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+  } else {
+    projects = await prisma.project.findMany({
+      where: {
+        members: {
+          some: {
+            userId: userId,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+  }
 
   return (
     <div className="space-y-6">
@@ -24,7 +44,7 @@ export default async function ProjectsPage() {
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Projects</h1>
           <p className="text-slate-500 mt-1">Manage and track all your active workspaces.</p>
         </div>
-        <CreateProjectDialog />
+        {userRole !== 'USER' && <CreateProjectDialog />}
       </div>
 
       <div className="rounded-md border border-slate-200 bg-white">
@@ -42,7 +62,9 @@ export default async function ProjectsPage() {
             {projects.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="h-24 text-center text-slate-500">
-                  No projects found. Create your first project to get started.
+                  {userRole === 'USER' 
+                    ? 'You have not been added to any projects yet.' 
+                    : 'No projects found. Create your first project to get started.'}
                 </TableCell>
               </TableRow>
             ) : (
@@ -54,7 +76,7 @@ export default async function ProjectsPage() {
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                      {project.status}
+                      {project.status || 'Active'}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-slate-500 text-sm">

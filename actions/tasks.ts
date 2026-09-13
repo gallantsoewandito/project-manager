@@ -62,6 +62,24 @@ export async function createTask(formData: FormData) {
     return { error: 'Unauthorized. Only managers can create tasks.' }
   }
 
+  const projectId = formData.get('projectId') as string
+
+  // 1. Check if they are a system manager/admin
+  const isSystemManager = user.role === 'ADMIN' || user.role === 'MANAGER'
+  
+  // 2. If not, check if they are a manager of this specific project
+  let isProjectManager = false
+  if (!isSystemManager) {
+    const membership = await prisma.projectMember.findUnique({
+      where: { projectId_userId: { projectId, userId: user.id } }
+    })
+    isProjectManager = membership?.role === 'MANAGER'
+  }
+
+  if (!isSystemManager && !isProjectManager) {
+    return { error: 'Unauthorized. Only project managers or system managers can create tasks.' }
+  }
+
   if (!checkRateLimit(`createTask_${user.id}`, 10, 60000)) {
     return { error: 'Rate limit exceeded. Please try again later.' }
   }

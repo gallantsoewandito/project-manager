@@ -102,7 +102,7 @@ export function ProjectMembersManager({ projectId, members, availableUsers, curr
             <tr>
               <th className="text-left py-3 px-4 font-medium text-slate-600">Name</th>
               <th className="text-left py-3 px-4 font-medium text-slate-600">Email</th>
-              <th className="text-left py-3 px-4 font-medium text-slate-600">Role</th>
+              <th className="text-left py-3 px-4 font-medium text-slate-600">Project Role</th>
               <th className="text-left py-3 px-4 font-medium text-slate-600">Actions</th>
             </tr>
           </thead>

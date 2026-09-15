@@ -47,8 +47,8 @@ export async function requestSignup(formData: FormData) {
                 email,
                 password: hashedPassword,
                 role: 'USER',
-                isApproved: true,
-                requiresPasswordChange: true,
+                isApproved: false,
+                requiresPasswordChange: false,
             },
         })
 
@@ -114,6 +114,19 @@ export async function approveUser(userId: string, newRole: string) {
         console.error('Failed to approve user:', error)
         return { error: 'Failed to approve user.' }
     }
+}
+
+export async function checkApprovalStatus(email:string) {
+  if (!email) {
+    return { approved: false }
+  }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { email } })
+    return { approved: user?.isApproved || false }
+  } catch (error) {
+    return { approved: false }
+  }
 }
 
 export async function deleteUser(userId: string) {

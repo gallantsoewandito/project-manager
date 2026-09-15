@@ -83,8 +83,8 @@ export async function createUserByAdmin(formData: FormData) {
                 email,
                 password: hashedPassword,
                 role: 'USER',
-                isApproved: false,
-                requiresPasswordChange: false,
+                isApproved: true,
+                requiresPasswordChange: true,
             },
         })
 
@@ -173,5 +173,50 @@ export async function updateUserPassword(userId: string, newPassword: string) {
   } catch (error) {
     console.error('Failed to update password:', error)
     return { error: 'Failed to update password.' }
+  }
+}
+
+export async function updateUserProfile(formData: FormData) {
+  const session = await getServerSession(authOptions)
+  if (!session) return { error: 'Unauthorized' }
+
+  const userId = (session.user as any).id
+  const name = formData.get('name') as string
+  const newPassword = formData.get('newPassword') as string
+  const confirmPassword = formData.get('confirmPassword') as string
+
+  try {
+    const updateData: any = {
+      name: name.trim(),
+    }
+
+    if (newPassword && newPassword.trim() !== '') {
+      if (newPassword !== confirmPassword) {
+        return { error: 'New passwords do not match.' }
+      }
+
+      const validated = signUpSchema.safeParse({
+        password: newPassword, 
+        name: 'temp', 
+        email: 'temp@test.com'
+      })
+
+      if (!validated.success) {
+        return { error: validated.error.message }
+      }
+      
+      updateData.password = await bcrypt.hash(newPassword, 10)
+      updateData.requiresPasswordChange = false
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+    })
+
+    return { success: true }
+  } catch (error) {
+    console.error('Failed to update profile:', error)
+    return { error: 'An unexpected error occurred.' }
   }
 }

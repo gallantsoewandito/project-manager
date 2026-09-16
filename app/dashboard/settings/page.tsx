@@ -1,6 +1,7 @@
 import { authOptions } from '@/lib/auth'
 import { getServerSession } from 'next-auth'
 import Link from 'next/link'
+import { User, ShieldCheck, ChevronRight } from 'lucide-react'
 
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions)
@@ -13,22 +14,42 @@ export default async function SettingsPage() {
         <p className="text-slate-500 mt-1">Manage your account and system preferences.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Row-based Layout Container */}
+      <div className="bg-white border border-slate-200 rounded-lg divide-y divide-slate-200">
+        
+        {/* Profile Row */}
         <Link 
           href="/dashboard/settings/profile" 
-          className="p-6 bg-white border border-slate-200 rounded-lg hover:shadow-md transition-shadow"
+          className="flex items-center justify-between p-6 hover:bg-slate-50 transition-colors group"
         >
-          <h2 className="text-lg font-semibold text-slate-900">Profile</h2>
-          <p className="text-sm text-slate-500 mt-2">Update your personal information and password.</p>
+          <div className="flex items-center gap-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
+              <User className="h-5 w-5 text-blue-600" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-slate-900">Profile</h2>
+              <p className="text-sm text-slate-500">Update your personal information and password.</p>
+            </div>
+          </div>
+          <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 transition-colors" />
         </Link>
 
+        {/* User Management Row (Admin Only) */}
         {userRole === 'ADMIN' && (
           <Link 
             href="/dashboard/settings/users" 
-            className="p-6 bg-white border border-slate-200 rounded-lg hover:shadow-md transition-shadow"
+            className="flex items-center justify-between p-6 hover:bg-slate-50 transition-colors group"
           >
-            <h2 className="text-lg font-semibold text-slate-900">User Management</h2>
-            <p className="text-sm text-slate-500 mt-2">Add, manage, and assign roles to system users.</p>
+            <div className="flex items-center gap-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-100">
+                <ShieldCheck className="h-5 w-5 text-purple-600" />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold text-slate-900">User Management</h2>
+                <p className="text-sm text-slate-500">Add, manage, and assign roles to system users.</p>
+              </div>
+            </div>
+            <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 transition-colors" />
           </Link>
         )}
       </div>

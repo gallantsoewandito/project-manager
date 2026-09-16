@@ -19,6 +19,12 @@ export default async function ProjectsPage() {
   const userRole = (session?.user as any)?.role || 'USER'
   const userId = (session?.user as any)?.id
 
+  const users = await prisma.user.findMany({
+    where: { isApproved: true },
+    select: { id: true, name: true, email: true },
+    orderBy: { name: 'asc' },
+  })
+
   let projects
   if (userRole === 'ADMIN' || userRole === 'MANAGER') {
     projects = await prisma.project.findMany({
@@ -44,7 +50,7 @@ export default async function ProjectsPage() {
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Projects</h1>
           <p className="text-slate-500 mt-1">Manage and track all your active workspaces.</p>
         </div>
-        {userRole !== 'USER' && <CreateProjectDialog />}
+        {userRole !== 'USER' && <CreateProjectDialog users={users} />}
       </div>
 
       <div className="rounded-md border border-slate-200 bg-white">

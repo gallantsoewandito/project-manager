@@ -30,24 +30,40 @@ export async function createProject(formData: FormData) {
   const userId = (session.user as any).id
   const name = formData.get('name') as string
   const description = formData.get('description') as string
+  const membersJson = formData.get('members') as string
 
   if (!name || name.trim().length === 0) {
     return { error: 'Project name is required.' }
   }
 
+  let invitedMembers: { userId: string; role: string }[] = []
+  if (membersJson) {
+    try {
+      invitedMembers = JSON.parse(membersJson)
+    } catch (error) {
+      console.error('Failed to parse members JSON:', error)
+    }
+  }
+
   try {
     const project = await prisma.project.create({
-        data: {
-            name: name.trim(),
-            description: description.trim(),
-            creatorId: userId,
-            members: {
-                create: {
-                    userId: userId,
-                    role: 'MANAGER'
-                }
-            }
+      data: {
+        name: name.trim(),
+        description: description.trim(),
+        creatorId: userId,
+        members: {
+          create: [
+            {
+              userId: userId,
+              role: 'MANAGER',
+            },
+            ...invitedMembers.map((member) => ({
+              userId: member.userId,
+              role: member.role,
+            })),
+          ],
         },
+      },
     })
 
     revalidatePath('/dashboard/projects')

@@ -14,6 +14,12 @@ export default async function DashboardPage() {
     const userRole = (session?.user as any)?.role || 'USER'
     const userName = (session?.user as any)?.name || 'User'
 
+    const users = await prisma.user.findMany({
+        where: { isApproved: true },
+        select: { id: true, name: true, email: true },
+        orderBy: { name: 'asc' },
+    })
+
     const totalProjects = await prisma.project.count()
     const totalTasks = await prisma.task.count()
     const completedTasks = await prisma.task.count({ where: { status: 'DONE' } })
@@ -60,7 +66,7 @@ export default async function DashboardPage() {
             </p>
             </div>
             {(userRole === 'ADMIN' || userRole === 'MANAGER') && (
-            <CreateProjectDialog />
+            <CreateProjectDialog users={users} />
             )}
         </div>
 

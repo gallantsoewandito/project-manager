@@ -74,6 +74,35 @@ export async function createProject(formData: FormData) {
   }
 }
 
+export async function deleteProject(formData: FormData) {
+  const session = await getServerSession(authOptions)
+  if (!session) return { error: 'Unauthorized' }
+
+  const userId = (session.user as any).id
+  const userRole = (session.user as any).role
+  const projectId = formData.get('projectId') as string
+
+  const project = await prisma.project.findUnique({ where: { id: projectId } })
+
+  if (!project) return { error: 'Project not found' }
+
+  const isSystemManager = userRole === 'ADMIN' || userRole === 'MANAGER'
+  const isCreator = project.creatorId === userId
+
+  if (!isSystemManager && !isCreator) {
+    return { error: 'Unauthorized. You do not have permission to delete this project.' }
+  }
+
+  try {
+    await prisma.project.delete({ where: { id: projectId } })
+    revalidatePath('/dashboard/projects')
+    return { success: true }
+  } catch (error) {
+    console.error('Failed to delete project:', error)
+    return { error: 'An unexpected error occurred.' }
+  }
+}
+
 // --- Add Member ---
 export async function addProjectMember(projectId: string, userId: string) {
   if (!(await checkProjectPermission(projectId))) {
@@ -130,4 +159,8 @@ export async function updateProjectMemberRole(projectId: string, userId: string,
   } catch (error) {
     return { error: 'Failed to update role.' }
   }
+}
+
+export async function deleteProjectAction(formData: FormData): Promise<void> {
+  await deleteProject(formData)
 }

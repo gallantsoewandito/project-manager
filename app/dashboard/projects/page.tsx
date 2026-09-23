@@ -13,6 +13,8 @@ import { format } from 'date-fns';
 import Link from 'next/link'
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { Eye, Trash2 } from 'lucide-react';
+import { deleteProjectAction } from '@/actions/projects';
 
 export default async function ProjectsPage() {
   const session = await getServerSession(authOptions)
@@ -76,7 +78,15 @@ export default async function ProjectsPage() {
             ) : (
               projects.map((project: any) => (
                 <TableRow key={project.id}>
-                  <TableCell className="font-medium text-slate-900">{project.name}</TableCell>
+                  {/* Clickable Project Name */}
+                  <TableCell className="font-medium text-slate-900">
+                    <Link 
+                      href={`/dashboard/projects/${project.id}`} 
+                      className="hover:text-blue-600 transition-colors"
+                    >
+                      {project.name}
+                    </Link>
+                  </TableCell>
                   <TableCell className="text-slate-600 max-w-xs truncate">
                     {project.description || '—'}
                   </TableCell>
@@ -88,13 +98,31 @@ export default async function ProjectsPage() {
                   <TableCell className="text-slate-500 text-sm">
                     {format(new Date(project.createdAt), 'MMM dd, yyyy')}
                   </TableCell>
+                  
+                  {/* Icon Actions */}
                   <TableCell className="text-right">
-                    <Link 
-                      href={`/dashboard/projects/${project.id}`} 
-                      className="text-blue-600 hover:text-blue-800 font-medium text-sm transition-colors"
-                    >
-                      View
-                    </Link>
+                    <div className="flex items-center justify-end gap-2">
+                      <Link href={`/dashboard/projects/${project.id}`}>
+                        <button 
+                          type="button" 
+                          className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                          title="View Project"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </Link>
+                      
+                      <form action={deleteProjectAction}>
+                        <input type="hidden" name="projectId" value={project.id} />
+                        <button 
+                          type="submit" 
+                          className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                          title="Delete Project"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </form>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

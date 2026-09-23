@@ -16,7 +16,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Plus, X, UserPlus } from 'lucide-react';
-import { resumeToFizzStream } from 'next/dist/server/app-render/stream-ops.node';
 
 interface User {
   id: string;

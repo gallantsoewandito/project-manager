@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation'
 import { CreateTaskDialog } from '@/components/tasks/CreateTaskDialog'
 import { ProjectTaskList } from '@/components/projects/ProjectTaskList'
 import { ProjectMembersManager } from '@/components/projects/ProjectMembersManager'
+import { EditProjectDialog } from '@/components/projects/EditProjectDialog'
 
 interface PageProps {
   params: Promise<{
@@ -82,6 +83,9 @@ export default async function ProjectDetailsPage({ params }: PageProps) {
     const isProjectManager = projectManager?.role === 'MANAGER'
     const canCreateTask = isSystemManager || isProjectManager
 
+    const isCreator = project.creatorId === userId
+    const canEditProject = isSystemManager || isProjectManager || isCreator
+
     const totalTasks = project.tasks.length
     const completedTasks = project.tasks.filter((task: any) => task.status === 'DONE').length
     const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
@@ -114,13 +118,22 @@ export default async function ProjectDetailsPage({ params }: PageProps) {
                     <h1 className="text-3xl font-bold tracking-tight text-slate-900">{project.name}</h1>
                     <p className="text-slate-500 mt-1">{project.description || 'No description provided.'}</p>
                 </div>
-                {canCreateTask && (
-                    <CreateTaskDialog 
-                        projects={[{ id: project.id, name: project.name }]} 
-                        users={users} 
-                        defaultProjectId={project.id} 
-                    />
-                )}
+                <div className="flex items-center gap-3">
+                    {canEditProject && (
+                        <EditProjectDialog 
+                            projectId={project.id} 
+                            currentName={project.name} 
+                            currentDescription={project.description} 
+                        />
+                    )}
+                    {canCreateTask && (
+                        <CreateTaskDialog 
+                            projects={[{ id: project.id, name: project.name }]} 
+                            users={users} 
+                            defaultProjectId={project.id} 
+                        />
+                    )}
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

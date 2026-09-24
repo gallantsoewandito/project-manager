@@ -103,6 +103,52 @@ export async function deleteProject(formData: FormData) {
   }
 }
 
+export async function updateProject(projectId: string, formData: FormData) {
+  const session = await getServerSession(authOptions)
+  if (!session) return { error: 'Unauthorized' }
+
+  const userId = (session.user as any).id
+  const userRole = (session.user as any).role
+
+  const project = await prisma.project.findUnique({ where: { id: projectId } })
+  if (!project) return { error: 'Project not found' }
+
+  const isSystemManager = userRole === 'ADMIN' || userRole === 'MANAGER'
+  const isCreator = project.creatorId === userId
+
+  const membership = await prisma.projectMember.findUnique({
+    where: { projectId_userId: { projectId, userId } }
+  })
+  const isProjectManager = membership?.role === 'MANAGER'
+
+  if (!isSystemManager && !isCreator && !isProjectManager) {
+    return { error: 'Unauthorized. You do not have permission to edit this project.' }
+  }
+
+  const name = formData.get('name') as string
+  const description = formData.get('description') as string
+
+  if (!name || name.trim().length === 0) {
+    return { error: 'Project name is required.' }
+  }
+
+  try {
+    await prisma.project.update({
+      where: { id: projectId },
+      data: {
+        name: name.trim(),
+        description: description.trim() || null,
+      },
+    })
+    revalidatePath(`/dashboard/projects/${projectId}`)
+    revalidatePath('/dashboard/projects')
+    return { success: true }
+  } catch (error) {
+    console.error('Failed to update project:', error)
+    return { error: 'An unexpected error occurred.' }
+  }
+}
+
 // --- Add Member ---
 export async function addProjectMember(projectId: string, userId: string) {
   if (!(await checkProjectPermission(projectId))) {

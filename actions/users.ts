@@ -220,3 +220,27 @@ export async function updateUserProfile(formData: FormData) {
     return { error: 'An unexpected error occurred.' }
   }
 }
+
+export async function resetUserPassword(userId: string) {
+  const admin = await getAdminUser()
+  if (!admin) return { error: 'Unauthorized. Only Admins can reset passwords.'}
+
+  try {
+    const defaultPassword = 'password123'
+    const hashedPassword = await bcrypt.hash(defaultPassword, 10)
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        password: hashedPassword,
+        requiresPasswordChange: true,
+      },
+    })
+    
+    revalidatePath('/dashboard/settings/users')
+    return { success: true }
+  } catch (error) {
+    console.error('Failed to reset password:', error)
+    return { error: 'Failed to reset password.' }
+  }
+}

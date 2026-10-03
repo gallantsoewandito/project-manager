@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { approveUser, deleteUser } from '@/actions/users'
+import { approveUser, deleteUser, resetUserPassword } from '@/actions/users'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Trash2, CheckCircle, XCircle } from 'lucide-react'
+import { Trash2, CheckCircle, XCircle, KeyRound } from 'lucide-react'
 
 interface User {
   id: string
@@ -42,6 +42,23 @@ export function UserTable({ users, currentUserId }: UserTableProps) {
     setIsProcessing(userId)
     await deleteUser(userId)
     setIsProcessing(null)
+  }
+
+  const handleResetPassword = async (userId: string) => {
+    const isConfirmed = window.confirm(
+      'Are you sure you want to reset this user\'s password to "password123"? They will be forced to change it on their next login.'
+    )
+    if (!isConfirmed) return
+
+    setIsProcessing(userId)
+    const result = await resetUserPassword(userId)
+    setIsProcessing(null)
+
+    if (result?.error) {
+      alert(result.error)
+    } else {
+      alert('Password reset successfully!')
+    }
   }
 
   const pendingUsers = users.filter(user => !user.isApproved)
@@ -112,6 +129,14 @@ export function UserTable({ users, currentUserId }: UserTableProps) {
                       >
                         <CheckCircle className="w-3 h-3" />
                         {isProcessing === user.id ? 'Approving...' : 'Approve'}
+                      </button>
+                      <button
+                        onClick={() => handleResetPassword(user.id)}
+                        disabled={isProcessing === user.id}
+                        className="text-slate-400 hover:text-amber-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mr-2"
+                        title="Reset password to default"
+                      >
+                        <KeyRound className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(user.id)}

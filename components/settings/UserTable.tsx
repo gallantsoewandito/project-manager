@@ -131,14 +131,6 @@ export function UserTable({ users, currentUserId }: UserTableProps) {
                         {isProcessing === user.id ? 'Approving...' : 'Approve'}
                       </button>
                       <button
-                        onClick={() => handleResetPassword(user.id)}
-                        disabled={isProcessing === user.id}
-                        className="text-slate-400 hover:text-amber-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mr-2"
-                        title="Reset password to default"
-                      >
-                        <KeyRound className="w-4 h-4" />
-                      </button>
-                      <button
                         onClick={() => handleDelete(user.id)}
                         disabled={isProcessing === user.id || user.id === currentUserId}
                         className="text-amber-600 hover:text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -211,7 +203,18 @@ export function UserTable({ users, currentUserId }: UserTableProps) {
                         <option value="ADMIN">Admin</option>
                       </select>
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-3 px-4 flex items-center gap-2">
+                      {/* Reset Password Button - NOW IN THE CORRECT SECTION */}
+                      <button
+                        onClick={() => handleResetPassword(user.id)}
+                        disabled={isProcessing === user.id}
+                        className="text-slate-400 hover:text-amber-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Reset password to default"
+                      >
+                        <KeyRound className="w-4 h-4" />
+                      </button>
+
+                      {/* Delete Button */}
                       <button
                         onClick={() => handleDelete(user.id)}
                         disabled={isProcessing === user.id || user.id === currentUserId}

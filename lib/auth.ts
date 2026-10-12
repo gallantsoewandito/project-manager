@@ -1,83 +1,96 @@
-import NextAuth, { NextAuthOptions } from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import { prisma } from "@/lib/prisma";
-import bcrypt from "bcryptjs";
+import { NextAuthOptions } from 'next-auth'
+import CredentialsProvider from 'next-auth/providers/credentials'
+import { prisma } from '@/lib/prisma'
+import bcrypt from 'bcryptjs'
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
-      name: "credentials",
+      name: 'Credentials',
       credentials: {
-        email: { label: "Email", type: "text" },
-        password: { label: "Password", type: "password" },
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' }
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error("Invalid credentials");
+          return null
         }
 
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
+          where: { email: credentials.email }
+        })
 
         if (!user || !user.password) {
-          throw new Error("Invalid credentials");
+          return null
         }
 
-        const isCorrectPassword = await bcrypt.compare(
-          credentials.password,
-          user.password
-        );
+        const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
 
-        if (!isCorrectPassword) {
-          throw new Error("Invalid credentials");
+        if (!isPasswordValid) {
+          return null
         }
 
-        // 1. Check if the admin has approved the user
         if (!user.isApproved) {
-          throw new Error("Your account is pending admin approval.");
+          throw new Error('Your account is pending admin approval.')
         }
 
+        // Cast to 'any' to include our custom properties
         return {
           id: user.id,
           email: user.email,
           name: user.name,
           role: user.role,
-          // 2. Pass the password change flag to the token
           requiresPasswordChange: user.requiresPasswordChange,
-        };
-      },
-    }),
+        } as any
+      }
+    })
   ],
   callbacks: {
+    async jwt({ token, user, trigger, session }) {
+      // Initial sign in
+      if (user) {
+        token.id = (user as any).id
+        token.role = (user as any).role
+        token.requiresPasswordChange = (user as any).requiresPasswordChange
+      }
+
+      // Handle session updates (e.g., after password change)
+      if (trigger === 'update' && session) {
+        token.requiresPasswordChange = (session as any).requiresPasswordChange
+      }
+
+      // Fetch organization context for the user
+      if (token.id) {
+        const orgMembership = await prisma.organizationMember.findFirst({
+          where: { userId: token.id as string },
+          select: { organizationId: true, role: true }
+        })
+
+        if (orgMembership) {
+          token.organizationId = orgMembership.organizationId
+          token.orgRole = orgMembership.role
+        }
+      }
+
+      return token
+    },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).id = token.sub;
-        (session.user as any).role = token.role;
-        // 3. Pass the password change flag to the session
-        (session.user as any).requiresPasswordChange = token.requiresPasswordChange;
+        ;(session.user as any).id = token.id
+        ;(session.user as any).role = token.role
+        ;(session.user as any).requiresPasswordChange = token.requiresPasswordChange
+        ;(session.user as any).organizationId = token.organizationId
+        ;(session.user as any).orgRole = token.orgRole
       }
-      return session;
-    },
-    async jwt({ token, user }) {
-      if (user) {
-        token.role = (user as any).role;
-        // 4. Store the password change flag in the JWT
-        token.requiresPasswordChange = (user as any).requiresPasswordChange;
-      }
-      return token;
-    },
+      return session
+    }
   },
   pages: {
-    signIn: "/login",
+    signIn: '/login',
+    error: '/login',
   },
   session: {
-    strategy: "jwt",
+    strategy: 'jwt',
   },
   secret: process.env.NEXTAUTH_SECRET,
-};
-
-export const handler = NextAuth(authOptions);
-export { handler as GET, handler as POST };
+}

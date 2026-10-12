@@ -19,31 +19,24 @@ import { deleteProjectAction } from '@/actions/projects';
 export default async function ProjectsPage() {
   const session = await getServerSession(authOptions)
   const userRole = (session?.user as any)?.role || 'USER'
-  const userId = (session?.user as any)?.id
+  const organizationId = (session?.user as any)?.organizationId
 
   const users = await prisma.user.findMany({
-    where: { isApproved: true },
+    where: { 
+      isApproved: true,
+      organizationMemberships: {
+        some: { organizationId }
+      }
+    },
     select: { id: true, name: true, email: true },
     orderBy: { name: 'asc' },
   })
 
-  let projects
-  if (userRole === 'ADMIN' || userRole === 'MANAGER') {
-    projects = await prisma.project.findMany({
-      orderBy: { createdAt: 'desc' },
-    });
-  } else {
-    projects = await prisma.project.findMany({
-      where: {
-        members: {
-          some: {
-            userId: userId,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    })
-  }
+  // Fetch Projects (Scoped to Org)
+  const projects = await prisma.project.findMany({
+    where: { organizationId },
+    orderBy: { createdAt: 'desc' },
+  })
 
   return (
     <div className="space-y-6">

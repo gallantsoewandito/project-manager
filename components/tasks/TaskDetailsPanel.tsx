@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, ExternalLink, Calendar } from 'lucide-react'
+import { X, ExternalLink, Calendar, Bell, BellOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { updateTaskDetails, updateTaskStatus } from '@/actions/tasks'
+import { updateTaskDetails, updateTaskStatus, updateTaskAssignee, nudgeTask, clearNudge } from '@/actions/tasks'
 
 interface Task {
   id: string
@@ -13,6 +13,7 @@ interface Task {
   dueDate: Date | null
   submissionLink: string | null
   submissionNotes: string | null
+  nudgedAt: Date | null // Added for nudge status
   assignee: { id: string; name: string | null; email: string | null } | null
 }
 
@@ -20,12 +21,14 @@ interface TaskDetailsPanelProps {
   task: Task | null
   userRole: string
   userId: string
+  users: { id: string; name: string | null; email: string }[] // Added users prop
   onClose: () => void
 }
 
-export function TaskDetailsPanel({ task, userRole, userId, onClose }: TaskDetailsPanelProps) {
+export function TaskDetailsPanel({ task, userRole, userId, users, onClose }: TaskDetailsPanelProps) {
     const [isOpen, setIsOpen] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
+    const [isProcessingAction, setIsProcessingAction] = useState(false)
 
     useEffect(() => {
         if (task) {
@@ -42,7 +45,6 @@ export function TaskDetailsPanel({ task, userRole, userId, onClose }: TaskDetail
 
     const handleSave = async (markAsDone = false) => {
         setIsSaving(true)
-
         const form = document.getElementById('task-details-form') as HTMLFormElement
         const formData = new FormData(form)
 
@@ -56,6 +58,32 @@ export function TaskDetailsPanel({ task, userRole, userId, onClose }: TaskDetail
         onClose()
     }
 
+    const handleAssigneeChange = async (newAssigneeId: string) => {
+        setIsProcessingAction(true)
+        const result = await updateTaskAssignee(task.id, newAssigneeId)
+        setIsProcessingAction(false)
+        if (result?.error) alert(result.error)
+        else onClose()
+    }
+
+    const handleNudge = async () => {
+        setIsProcessingAction(true)
+        const result = await nudgeTask(task.id)
+        setIsProcessingAction(false)
+        if (result?.error) alert(result.error)
+        else {
+            alert('Nudge sent successfully.')
+            onClose()
+        }
+    }
+
+    const handleClearNudge = async () => {
+        setIsProcessingAction(true)
+        await clearNudge(task.id)
+        setIsProcessingAction(false)
+        onClose()
+    }
+
     const formatDate = (date: Date | null) => {
         if (!date) return 'No deadline set'
         return new Date(date).toLocaleDateString('en-US',{
@@ -66,7 +94,7 @@ export function TaskDetailsPanel({ task, userRole, userId, onClose }: TaskDetail
         })
     }
 
-     return (
+    return (
         <div className={`fixed inset-0 z-50 transition-opacity ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <div className="absolute inset-0 bg-black/50" onClick={onClose} />
         
@@ -91,6 +119,26 @@ export function TaskDetailsPanel({ task, userRole, userId, onClose }: TaskDetail
                     />
                 </div>
 
+                {/* NEW: Assignee Section (Managers Only) */}
+                {isManager && (
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-700">Assigned To</label>
+                        <select
+                            defaultValue={task.assignee?.id || ''}
+                            onChange={async (e) => await handleAssigneeChange(e.target.value)}
+                            disabled={isProcessingAction}
+                            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 disabled:bg-slate-50"
+                        >
+                            <option value="">Unassigned</option>
+                            {users.map((user) => (
+                                <option key={user.id} value={user.id}>
+                                    {user.name || user.email}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+
                 <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-700">Deadline</label>
                     {isManager ? (
@@ -107,6 +155,27 @@ export function TaskDetailsPanel({ task, userRole, userId, onClose }: TaskDetail
                         </div>
                     )}
                 </div>
+
+                {/* NEW: Nudge Section (Managers Only) */}
+                {isManager && task.status !== 'DONE' && (
+                    <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
+                        <div>
+                            <p className="text-sm font-medium text-slate-900">Task Reminder</p>
+                            <p className="text-xs text-slate-500">
+                                {task.nudgedAt ? 'Nudge was sent.' : 'Remind the assignee about this task.'}
+                            </p>
+                        </div>
+                        {task.nudgedAt ? (
+                            <Button variant="outline" size="sm" onClick={handleClearNudge} disabled={isProcessingAction} className="gap-2">
+                                <BellOff className="h-4 w-4" /> Clear
+                            </Button>
+                        ) : (
+                            <Button size="sm" onClick={handleNudge} disabled={isProcessingAction} className="gap-2">
+                                <Bell className="h-4 w-4" /> Nudge
+                            </Button>
+                        )}
+                    </div>
+                )}
 
                 <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-700">Description</label>
@@ -173,51 +242,24 @@ export function TaskDetailsPanel({ task, userRole, userId, onClose }: TaskDetail
             <div className="border-t border-slate-200 px-6 py-4 flex gap-3">
                 {isManager ? (
                 <>
-                    <Button 
-                    type="button" 
-                    variant="outline"
-                    onClick={() => handleSave(false)}
-                    disabled={isSaving}
-                    className="flex-1"
-                    >
+                    <Button type="button" variant="outline" onClick={() => handleSave(false)} disabled={isSaving} className="flex-1">
                     {isSaving ? 'Saving...' : 'Save and Back'}
                     </Button>
-                    <Button 
-                    type="button" 
-                    onClick={() => handleSave(true)}
-                    disabled={isSaving || task.status === 'DONE'}
-                    className="flex-1"
-                    >
+                    <Button type="button" onClick={() => handleSave(true)} disabled={isSaving || task.status === 'DONE'} className="flex-1">
                     {isSaving ? 'Saving...' : 'Save & Mark as Done'}
                     </Button>
                 </>
                 ) : isAssignee ? (
                 <>
-                    <Button 
-                    type="button" 
-                    variant="outline"
-                    onClick={() => handleSave(false)}
-                    disabled={isSaving}
-                    className="flex-1"
-                    >
+                    <Button type="button" variant="outline" onClick={() => handleSave(false)} disabled={isSaving} className="flex-1">
                     {isSaving ? 'Saving...' : 'Save and Back'}
                     </Button>
-                    <Button 
-                    type="button" 
-                    onClick={() => handleSave(true)}
-                    disabled={isSaving || task.status === 'DONE'}
-                    className="flex-1"
-                    >
+                    <Button type="button" onClick={() => handleSave(true)} disabled={isSaving || task.status === 'DONE'} className="flex-1">
                     {isSaving ? 'Saving...' : 'Save & Mark as Done'}
                     </Button>
                 </>
                 ) : (
-                <Button 
-                    type="button" 
-                    variant="outline"
-                    onClick={onClose}
-                    className="w-full"
-                >
+                <Button type="button" variant="outline" onClick={onClose} className="w-full">
                     Close
                 </Button>
                 )}

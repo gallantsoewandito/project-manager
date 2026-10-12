@@ -7,16 +7,27 @@ export default withAuth(
     if (!token) return NextResponse.next()
 
     const requiresPasswordChange = token.requiresPasswordChange as boolean
-    const isChangePasswordPage = req.nextUrl.pathname === "/dashboard/settings/change-password"
+    const path = req.nextUrl.pathname
+    const isChangePasswordPage = path === "/dashboard/settings/change-password"
+    const isOnboardingPage = path === "/dashboard/onboarding"
     
-    // If user needs password change and is not on the change password page
-    if (requiresPasswordChange && !isChangePasswordPage) {
+    // 1. Force password change if required
+    if (requiresPasswordChange && !isChangePasswordPage && !isOnboardingPage) {
       return NextResponse.redirect(new URL("/dashboard/settings/change-password", req.url))
     }
 
-    // If user doesn't need password change but is on the change password page
+    // 2. Block access to change password if not required
     if (!requiresPasswordChange && isChangePasswordPage) {
       return NextResponse.redirect(new URL("/dashboard", req.url))
+    }
+
+    // 3. Enforce Organization Membership for Dashboard routes
+    const hasOrganization = !!token.organizationId
+    const isProtectedRoute = path.startsWith('/dashboard')
+
+    if (isProtectedRoute && !hasOrganization && !isOnboardingPage && !isChangePasswordPage) {
+      // Redirect users without an organization to the onboarding page
+      return NextResponse.redirect(new URL("/dashboard/onboarding", req.url))
     }
 
     return NextResponse.next()
@@ -26,12 +37,12 @@ export default withAuth(
       authorized: ({ token, req }) => {
         const path = req.nextUrl.pathname
         
-        // 1. Always allow access to login and signup pages to prevent redirect loops
-        if (path === "/login" || path === "/signup") {
+        // Always allow access to login and signup
+        if (path === "/login" || path === "/signup" || path === "/dashboard/onboarding") {
           return true
         }
         
-        // 2. Require a valid token for all other matched routes (like /dashboard)
+        // Require a valid token for all other matched routes
         return !!token
       },
     },

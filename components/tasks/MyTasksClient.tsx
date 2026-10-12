@@ -20,9 +20,10 @@ interface MyTasksClientProps {
   tasks: Task[]
   userRole: string
   userId: string
+  users: { id: string; name: string | null; email: string }[] 
 }
 
-export function MyTasksClient({ tasks, userRole, userId }: MyTasksClientProps) {
+export function MyTasksClient({ tasks, userRole, userId, users }: MyTasksClientProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const selectedTaskId = searchParams.get('taskId')
@@ -120,7 +121,8 @@ export function MyTasksClient({ tasks, userRole, userId }: MyTasksClientProps) {
       <TaskDetailsPanel 
         task={selectedTask as any} 
         userRole={userRole} 
-        userId={userId} 
+        userId={userId}
+        users={users}
         onClose={closePanel} 
       />
     </div>

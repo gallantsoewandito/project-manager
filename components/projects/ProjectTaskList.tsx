@@ -18,9 +18,10 @@ interface ProjectTaskListProps {
   tasks: Task[]
   userRole: string
   userId: string
+  users: { id: string; name: string | null; email: string }[] 
 }
 
-export function ProjectTaskList({ tasks, userRole, userId }: ProjectTaskListProps) {
+export function ProjectTaskList({ tasks, userRole, userId, users }: ProjectTaskListProps) {
     const [selectedTask, setSelectedTask] = useState<Task | null>(null)
 
     return (
@@ -70,9 +71,10 @@ export function ProjectTaskList({ tasks, userRole, userId }: ProjectTaskListProp
         </div>
 
         <TaskDetailsPanel 
-            task={selectedTask} 
+            task={selectedTask as any} 
             userRole={userRole} 
-            userId={userId} 
+            userId={userId}
+            users={users}
             onClose={() => setSelectedTask(null)} 
         />
         </>
